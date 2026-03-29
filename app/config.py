@@ -1,0 +1,21 @@
+import os
+from dotenv import load_dotenv
+
+# Load .env.local file if it exists
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '../.env.local'))
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard-to-guess-string'
+    
+    # SQLAlchemy Configuration
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    
+    # If the provided Supabase URL uses postgres://, SQLAlchemy requires postgresql://
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+        
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # JWT Configuration
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-string'
