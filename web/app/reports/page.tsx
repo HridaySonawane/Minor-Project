@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/purity */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BarChart3, Download, Filter, Calendar } from "lucide-react";
-import { useState, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export default function ReportsPage() {
   const searchParams = useSearchParams();

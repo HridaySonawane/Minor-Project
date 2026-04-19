@@ -2,7 +2,8 @@
 "use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { LogsIcon, Filter, Search } from "lucide-react";
-import { useState, useSearchParams } from "next/navigation";
+import {useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export default function LogsPage() {
   const searchParams = useSearchParams();
