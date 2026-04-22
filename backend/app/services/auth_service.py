@@ -1,10 +1,10 @@
 from app.models.user import User
 from app.extensions import db
-from app.models.user import User
 from app.utils.jwt_handler import generate_token
 import bcrypt
 
 VALID_ROLES = ['worker','supervisor','safety_officer','admin','authority']
+
 
 def register_user(data):
     name = data.get("name")
@@ -12,25 +12,25 @@ def register_user(data):
     password = data.get("password")
     role = data.get("role")
 
-    #Validation
+    # Validation
     if not all([name, email, password, role]):
         return {"error": "Missing required fields"}, 400
 
     if role not in VALID_ROLES:
         return {"error": "Invalid role"}, 400
 
-    #Check existing user
+    # Check existing user
     if User.query.filter_by(email=email).first():
         return {"error": "User already exists"}, 400
 
-    #Hash password
-    hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    # Hash password
+    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    #Create user
+    # Create user
     user = User(
         name=name,
         email=email,
-        password_hash=hashed_pw.decode('utf-8'),
+        password_hash=hashed_pw,
         role=role
     )
 
@@ -41,27 +41,27 @@ def register_user(data):
         "message": "User registered successfully",
         "user_id": user.id
     }, 201
-    
+
 
 def login_user(data):
     email = data.get("email")
     password = data.get("password")
 
-    #Validation
+    # Validation
     if not email or not password:
         return {"error": "Email and password required"}, 400
 
-    #Find user
+    # Find user
     user = User.query.filter_by(email=email).first()
 
     if not user:
         return {"error": "User not found"}, 404
 
-    #Verify password
-    if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+    # Verify password
+    if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         return {"error": "Invalid credentials"}, 401
 
-    #Generate JWT
+    # Generate JWT
     token = generate_token(user)
 
     return {
