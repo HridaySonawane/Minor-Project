@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Settings, Lock, Bell, User, LogOut } from "lucide-react";
 import { useSearchParams } from "next/navigation";

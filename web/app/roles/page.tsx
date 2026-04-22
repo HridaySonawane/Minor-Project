@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Shield, Lock, Eye, Edit } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -88,7 +89,7 @@ export default function RolesPage() {
                   <p className="text-xs text-gray-400">Level {r.level}</p>
                 </div>
                 {idx < roles.length - 1 && (
-                  <div className="px-3 text-gray-400">→</div>
+                  <div className="px-3 text-gray-400">â†’</div>
                 )}
               </div>
             ))}
@@ -196,7 +197,7 @@ export default function RolesPage() {
                             perm ? "text-green-400 font-bold" : "text-gray-500"
                           }
                         >
-                          {perm ? "✓" : "✗"}
+                          {perm ? "âœ“" : "âœ—"}
                         </span>
                       </td>
                     ))}

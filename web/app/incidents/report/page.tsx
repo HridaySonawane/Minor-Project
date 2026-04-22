@@ -1,6 +1,7 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable react-hooks/purity */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AlertCircle, Plus, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -56,7 +57,7 @@ export default function ReportIncidentPage() {
             href={`/dashboard/${role}?role=${role}`}
             className="text-orange-400 hover:text-orange-300 text-sm mb-4 inline-block"
           >
-            ← Back to Dashboard
+            â† Back to Dashboard
           </Link>
           <h2 className="text-3xl font-bold mb-2">Report Incident</h2>
           <p className="text-gray-400">
@@ -66,7 +67,7 @@ export default function ReportIncidentPage() {
 
         {submitted ? (
           <div className="bg-green-900/20 border border-green-700 p-8 rounded-xl text-center">
-            <div className="text-4xl mb-4">✓</div>
+            <div className="text-4xl mb-4">âœ“</div>
             <h3 className="text-2xl font-bold text-green-400 mb-2">
               Incident Reported
             </h3>

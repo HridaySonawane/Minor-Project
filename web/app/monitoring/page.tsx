@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Gauge, TrendingUp, AlertTriangle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -34,7 +35,7 @@ export default function MonitoringPage() {
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Avg Temperature</p>
-            <p className="text-2xl font-bold text-red-400">43.5°C</p>
+            <p className="text-2xl font-bold text-red-400">43.5Â°C</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Critical Zones</p>
@@ -113,7 +114,7 @@ export default function MonitoringPage() {
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-semibold">Temperature</span>
                     <span className="text-lg font-bold text-orange-400">
-                      {item.temp}°C
+                      {item.temp}Â°C
                     </span>
                   </div>
                   <div className="h-3 rounded-full overflow-hidden bg-neutral-800">
@@ -161,7 +162,7 @@ export default function MonitoringPage() {
               {
                 name: "Temp Sensor",
                 zone: "Zone D",
-                value: "40°C",
+                value: "40Â°C",
                 status: "ok",
               },
             ].map((sensor, idx) => (

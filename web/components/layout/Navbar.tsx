@@ -1,11 +1,15 @@
 "use client";
 import { Bell, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function Navbar() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") || "worker";
+  const pathParts = pathname.split("/").filter(Boolean);
+  const roleFromPath =
+    pathParts[0] === "dashboard" && pathParts[1] ? pathParts[1] : null;
+  const role = roleFromPath || searchParams.get("role") || "worker";
 
   return (
     <div className="flex justify-between items-center p-4 border-b border-neutral-800 bg-neutral-900">
@@ -22,7 +26,7 @@ export default function Navbar() {
         </div>
 
         <Link
-          href="/settings"
+          href={`/dashboard/${role}/settings`}
           className="hover:bg-neutral-800 p-2 rounded-lg transition"
         >
           <Settings size={20} />

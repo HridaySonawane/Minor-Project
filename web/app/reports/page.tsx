@@ -1,6 +1,7 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable react-hooks/purity */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BarChart3, Download, Filter, Calendar } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -188,7 +189,7 @@ export default function ReportsPage() {
                         {Math.floor(Math.random() * 8) + 2} hours
                       </td>
                       <td className="py-3 text-center">
-                        <span className="text-green-400">↓ Improving</span>
+                        <span className="text-green-400">â†“ Improving</span>
                       </td>
                     </tr>
                   ))}
@@ -211,7 +212,7 @@ export default function ReportsPage() {
         {!canExport && (
           <div className="bg-blue-900/20 border border-blue-700 p-4 rounded-xl">
             <p className="text-sm text-blue-300">
-              📊 Note: Full export and advanced analytics are available for
+              ðŸ“Š Note: Full export and advanced analytics are available for
               Admin and Authority roles only.
             </p>
           </div>

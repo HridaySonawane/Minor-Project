@@ -70,11 +70,10 @@ export default function IncidentDetailPage() {
               <h2 className="text-3xl font-bold mb-2">{incident.title}</h2>
             </div>
             <span
-              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                incident.severity === "critical"
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${incident.severity === "critical"
                   ? "bg-red-900/30 text-red-400"
                   : "bg-orange-900/30 text-orange-400"
-              }`}
+                }`}
             >
               {incident.severity.toUpperCase()}
             </span>
@@ -119,15 +118,14 @@ export default function IncidentDetailPage() {
                   <div key={idx} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div
-                        className={`w-3 h-3 rounded-full ${
-                          event.status === "created"
+                        className={`w-3 h-3 rounded-full ${event.status === "created"
                             ? "bg-blue-500"
                             : event.status === "alert"
                               ? "bg-red-500"
                               : event.status === "action"
                                 ? "bg-orange-500"
                                 : "bg-yellow-500"
-                        }`}
+                          }`}
                       ></div>
                       {idx < incident.timeline.length - 1 && (
                         <div className="w-0.5 h-12 bg-neutral-700 mt-2"></div>
@@ -216,19 +214,19 @@ export default function IncidentDetailPage() {
             {(role === "safety" ||
               role === "admin" ||
               role === "authority") && (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-3">
-                <h3 className="font-bold mb-4">Actions</h3>
-                <button className="w-full px-4 py-2 bg-green-900/30 text-green-400 border border-green-700 rounded hover:bg-green-900/50 transition font-semibold text-sm">
-                  Approve
-                </button>
-                <button className="w-full px-4 py-2 bg-blue-900/30 text-blue-400 border border-blue-700 rounded hover:bg-blue-900/50 transition font-semibold text-sm">
-                  Request Review
-                </button>
-                <button className="w-full px-4 py-2 bg-orange-900/30 text-orange-400 border border-orange-700 rounded hover:bg-orange-900/50 transition font-semibold text-sm">
-                  Escalate
-                </button>
-              </div>
-            )}
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-3">
+                  <h3 className="font-bold mb-4">Actions</h3>
+                  <button className="w-full px-4 py-2 bg-green-900/30 text-green-400 border border-green-700 rounded hover:bg-green-900/50 transition font-semibold text-sm">
+                    Approve
+                  </button>
+                  <button className="w-full px-4 py-2 bg-blue-900/30 text-blue-400 border border-blue-700 rounded hover:bg-blue-900/50 transition font-semibold text-sm">
+                    Request Review
+                  </button>
+                  <button className="w-full px-4 py-2 bg-orange-900/30 text-orange-400 border border-orange-700 rounded hover:bg-orange-900/50 transition font-semibold text-sm">
+                    Escalate
+                  </button>
+                </div>
+              )}
           </div>
         </div>
       </div>

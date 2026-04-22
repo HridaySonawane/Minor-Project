@@ -11,48 +11,82 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
+import { apiFetch } from "@/lib/api";
+
+interface DashboardResponse {
+  data?: {
+    analytics?: {
+      efficiency?: string;
+      incident_frequency?: number;
+      risk_levels?: string;
+    };
+    reports?: Array<Record<string, unknown>>;
+  };
+}
 
 export default function AuthorityDashboard() {
-  const [selectedMine, setSelectedMine] = useState(null);
-
-  const mineStats = [
-    {
-      name: "Coal Mine A",
-      status: "online",
-      incidents: 2,
-      productivity: "93.1%",
-      hazardLevel: "HIGH",
-    },
-    {
-      name: "Coal Mine B",
-      status: "online",
-      incidents: 0,
-      productivity: "88.5%",
-      hazardLevel: "MEDIUM",
-    },
-    {
-      name: "Coal Mine C",
-      status: "online",
-      incidents: 1,
-      productivity: "91.2%",
-      hazardLevel: "MEDIUM",
-    },
-  ];
-
-  const overrides = [
-    { id: 1, request: "INC-3412", origin: "Safety", decision: "APPROVE" },
-    { id: 2, request: "USR 2201", origin: "Admin", decision: "REJECT" },
-    { id: 3, request: "TSK-1019", origin: "Super", decision: "ESCALATE" },
-  ];
-
-  const alerts = [
-    { type: "critical", title: "Methane surge detected", time: "Just now" },
-    { type: "warning", title: "Staff shortage warning", time: "15 min ago" },
-    { type: "info", title: "Audit complete", time: "1 hour ago" },
-  ];
-
-  const productivity = [72, 75, 77, 81, 86, 93];
-  const incidents = [31, 29, 27, 24, 22, 19];
+  const [stats, setStats] = useState({
+    minesOnline: 0,
+    criticalAlerts: 0,
+    activeInvestigations: 0,
+    overallRisk: "LOW",
+  });
+  const [mineStats, setMineStats] = useState<
+    Array<{ name: string; status: string; incidents: number; productivity: string; hazardLevel: string }>
+  >([]);
+  const [overrides, setOverrides] = useState<
+    Array<{ id: number; request: string; origin: string; decision: string }>
+  >([]);
+  const [alerts, setAlerts] = useState<Array<{ type: string; title: string; time: string }>>(
+    []
+  );
+  const [productivity, setProductivity] = useState<number[]>([]);
+  const [incidents, setIncidents] = useState<number[]>([]);
+  useEffect(() => {
+    const load = async () => {
+      const data = await apiFetch<DashboardResponse>("/api/dashboard").catch(
+        () => null
+      );
+      const analytics = data?.data?.analytics;
+      if (!analytics) return;
+      setStats({
+        minesOnline: 1,
+        criticalAlerts: analytics.incident_frequency || 0,
+        activeInvestigations: analytics.incident_frequency || 0,
+        overallRisk: (analytics.risk_levels || "LOW").toUpperCase(),
+      });
+      const reports = data?.data?.reports || [];
+      setMineStats(
+        reports.map((report, idx) => ({
+          name: String(report.name || `Mine ${idx + 1}`),
+          status: String(report.status || "online"),
+          incidents: Number(report.incidents || analytics.incident_frequency || 0),
+          productivity: String(report.productivity || analytics.efficiency || "0%"),
+          hazardLevel: String(report.hazardLevel || analytics.risk_levels || "medium").toUpperCase(),
+        }))
+      );
+      setOverrides(
+        reports.slice(0, 3).map((report, idx) => ({
+          id: idx + 1,
+          request: String(report.request || report.id || `REQ-${idx + 1}`),
+          origin: String(report.origin || "System"),
+          decision: String(report.decision || "ESCALATE"),
+        }))
+      );
+      setAlerts(
+        reports.slice(0, 3).map((report, idx) => ({
+          type: idx === 0 ? "critical" : idx === 1 ? "warning" : "info",
+          title: String(report.alert || report.title || `Alert ${idx + 1}`),
+          time: String(report.time || "Just now"),
+        }))
+      );
+      const efficiencyValue = parseInt((analytics.efficiency || "0").replace("%", ""), 10) || 0;
+      setProductivity([efficiencyValue - 10, efficiencyValue - 7, efficiencyValue - 4, efficiencyValue - 2, efficiencyValue]);
+      setIncidents([analytics.incident_frequency || 0, analytics.incident_frequency || 0, analytics.incident_frequency || 0]);
+    };
+    void load();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -69,19 +103,23 @@ export default function AuthorityDashboard() {
         <div className="grid grid-cols-4 gap-4">
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Mines Online</p>
-            <p className="text-2xl font-bold text-blue-400">12</p>
+            <p className="text-2xl font-bold text-blue-400">{stats.minesOnline}</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Critical Alerts</p>
-            <p className="text-2xl font-bold text-red-400">2</p>
+            <p className="text-2xl font-bold text-red-400">
+              {stats.criticalAlerts}
+            </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Active Investigations</p>
-            <p className="text-2xl font-bold text-orange-400">31</p>
+            <p className="text-2xl font-bold text-orange-400">
+              {stats.activeInvestigations}
+            </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Overall Risk</p>
-            <p className="text-2xl font-bold text-red-500">HIGH</p>
+            <p className="text-2xl font-bold text-red-500">{stats.overallRisk}</p>
           </div>
         </div>
 
@@ -181,16 +219,18 @@ export default function AuthorityDashboard() {
               Global Alerts
             </h3>
             <div className="space-y-3">
+              {alerts.length === 0 && (
+                <p className="text-sm text-gray-400">No global alerts available.</p>
+              )}
               {alerts.map((alert, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 rounded-lg border ${
-                    alert.type === "critical"
+                  className={`p-3 rounded-lg border ${alert.type === "critical"
                       ? "bg-red-900/20 border-red-700"
                       : alert.type === "warning"
                         ? "bg-yellow-900/20 border-yellow-700"
                         : "bg-blue-900/20 border-blue-700"
-                  }`}
+                    }`}
                 >
                   <p className="font-semibold text-sm">{alert.title}</p>
                   <p className="text-xs text-gray-400 mt-1">{alert.time}</p>
@@ -203,6 +243,9 @@ export default function AuthorityDashboard() {
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h3 className="text-xl font-bold mb-4">Global Override Panel</h3>
             <div className="space-y-3">
+              {overrides.length === 0 && (
+                <p className="text-sm text-gray-400">No override requests found.</p>
+              )}
               {overrides.map((override) => (
                 <div
                   key={override.id}
@@ -215,13 +258,12 @@ export default function AuthorityDashboard() {
                     </p>
                   </div>
                   <button
-                    className={`px-3 py-1 rounded text-xs font-semibold ${
-                      override.decision === "APPROVE"
+                    className={`px-3 py-1 rounded text-xs font-semibold ${override.decision === "APPROVE"
                         ? "bg-green-900/30 text-green-400"
                         : override.decision === "REJECT"
                           ? "bg-red-900/30 text-red-400"
                           : "bg-orange-900/30 text-orange-400"
-                    }`}
+                      }`}
                   >
                     {override.decision}
                   </button>
@@ -250,6 +292,13 @@ export default function AuthorityDashboard() {
                 </tr>
               </thead>
               <tbody>
+                {mineStats.length === 0 && (
+                  <tr>
+                    <td className="py-3 px-3 text-gray-400" colSpan={6}>
+                      No mine operation data available.
+                    </td>
+                  </tr>
+                )}
                 {mineStats.map((mine, idx) => (
                   <tr
                     key={idx}
@@ -262,11 +311,10 @@ export default function AuthorityDashboard() {
                     </td>
                     <td className="py-3 px-3">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          mine.incidents === 0
+                        className={`px-2 py-1 rounded text-xs font-semibold ${mine.incidents === 0
                             ? "bg-green-900/30 text-green-400"
                             : "bg-orange-900/30 text-orange-400"
-                        }`}
+                          }`}
                       >
                         {mine.incidents}
                       </span>
@@ -276,17 +324,16 @@ export default function AuthorityDashboard() {
                     </td>
                     <td className="py-3 px-3">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          mine.hazardLevel === "HIGH"
+                        className={`px-2 py-1 rounded text-xs font-semibold ${mine.hazardLevel === "HIGH"
                             ? "bg-red-900/30 text-red-400"
                             : "bg-yellow-900/30 text-yellow-400"
-                        }`}
+                          }`}
                       >
                         {mine.hazardLevel}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <Link href={`/mine/${idx}?role=authority`}>
+                      <Link href={`/dashboard/authority/reports`}>
                         <button className="text-orange-400 hover:text-orange-300 text-xs font-semibold">
                           View Details
                         </button>

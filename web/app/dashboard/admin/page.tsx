@@ -12,68 +12,75 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
+import { apiFetch } from "@/lib/api";
+
+interface DashboardResponse {
+  data?: {
+    total_users?: number;
+    total_incidents?: number;
+    system_alerts?: Array<Record<string, unknown>>;
+    reports?: Array<Record<string, unknown>>;
+  };
+}
 
 export default function AdminDashboard() {
   const [showCreateUser, setShowCreateUser] = useState(false);
-
-  const users = [
-    {
-      id: 1,
-      name: "R Das",
-      email: "rdas@coalmine.com",
-      role: "Worker",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "M Khan",
-      email: "mkhan@coalmine.com",
-      role: "Supervisor",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "N Roy",
-      email: "nroy@coalmine.com",
-      role: "Safety Officer",
-      status: "Suspended",
-    },
-    {
-      id: 4,
-      name: "A Sharma",
-      email: "asharma@coalmine.com",
-      role: "Administrator",
-      status: "Active",
-    },
-  ];
-
-  const logs = [
-    { time: "10:08", user: "R Das", action: "Login", status: "success" },
-    {
-      time: "10:12",
-      user: "M Khan",
-      action: "Role request pending",
-      status: "pending",
-    },
-    {
-      time: "10:17",
-      user: "System",
-      action: "Escalation blocked",
-      status: "warning",
-    },
-    {
-      time: "09:45",
-      user: "N Roy",
-      action: "Account suspended",
-      status: "alert",
-    },
-  ];
-
-  const roleHierarchy = [
-    { from: "Worker", to: "Supervisor", permission: "Request" },
-    { from: "Supervisor", to: "Safety", permission: "Authority" },
-    { from: "UI Escalation", to: "Block", permission: "Blocked" },
-  ];
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeSessions: 0,
+    pendingRequests: 0,
+    systemHealth: "0%",
+  });
+  const [users, setUsers] = useState<
+    Array<{ id: number; name: string; email: string; role: string; status: string }>
+  >([]);
+  const [logs, setLogs] = useState<
+    Array<{ time: string; user: string; action: string; status: string }>
+  >([]);
+  const [roleHierarchy, setRoleHierarchy] = useState<
+    Array<{ from: string; to: string; permission: string }>
+  >([]);
+  useEffect(() => {
+    const load = async () => {
+      const data = await apiFetch<DashboardResponse>("/api/dashboard").catch(
+        () => null
+      );
+      const admin = data?.data;
+      if (!admin) return;
+      setStats({
+        totalUsers: admin.total_users || 0,
+        activeSessions: admin.total_users || 0,
+        pendingRequests: admin.system_alerts?.length || 0,
+        systemHealth: admin.total_incidents === 0 ? "100%" : "92%",
+      });
+      setUsers(
+        (admin.reports || []).map((report, idx) => ({
+          id: idx + 1,
+          name: String(report.name || report.user || `User ${idx + 1}`),
+          email: String(report.email || `user${idx + 1}@example.com`),
+          role: String(report.role || "User"),
+          status: String(report.status || "Active"),
+        }))
+      );
+      setLogs(
+        (admin.system_alerts || []).map((alert, idx) => ({
+          time: String(alert.time || "--:--"),
+          user: String(alert.user || "System"),
+          action: String(alert.message || alert.action || `Alert ${idx + 1}`),
+          status: String(alert.status || "warning"),
+        }))
+      );
+      setRoleHierarchy(
+        (admin.reports || []).slice(0, 3).map((report) => ({
+          from: String(report.from || "Worker"),
+          to: String(report.to || "Supervisor"),
+          permission: String(report.permission || "Policy"),
+        }))
+      );
+    };
+    void load();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -92,19 +99,25 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-4 gap-4">
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Total Users</p>
-            <p className="text-2xl font-bold text-blue-400">512</p>
+            <p className="text-2xl font-bold text-blue-400">{stats.totalUsers}</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Active Sessions</p>
-            <p className="text-2xl font-bold text-green-400">143</p>
+            <p className="text-2xl font-bold text-green-400">
+              {stats.activeSessions}
+            </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Pending Requests</p>
-            <p className="text-2xl font-bold text-orange-400">9</p>
+            <p className="text-2xl font-bold text-orange-400">
+              {stats.pendingRequests}
+            </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">System Health</p>
-            <p className="text-2xl font-bold text-green-400">99.8%</p>
+            <p className="text-2xl font-bold text-green-400">
+              {stats.systemHealth}
+            </p>
           </div>
         </div>
 
@@ -151,6 +164,13 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
+                  {users.length === 0 && (
+                    <tr>
+                      <td className="py-3 px-2 text-gray-400" colSpan={4}>
+                        No user records from API.
+                      </td>
+                    </tr>
+                  )}
                   {users.map((user) => (
                     <tr
                       key={user.id}
@@ -169,11 +189,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-3 px-2">
                         <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            user.status === "Active"
+                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${user.status === "Active"
                               ? "bg-green-900/30 text-green-400"
                               : "bg-red-900/30 text-red-400"
-                          }`}
+                            }`}
                         >
                           {user.status}
                         </span>
@@ -200,6 +219,9 @@ export default function AdminDashboard() {
               Role Controls
             </h3>
             <div className="space-y-3">
+              {roleHierarchy.length === 0 && (
+                <p className="text-sm text-gray-400">No role policy data available.</p>
+              )}
               {roleHierarchy.map((item, idx) => (
                 <div key={idx} className="p-3 bg-neutral-800 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -255,6 +277,13 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
+                {logs.length === 0 && (
+                  <tr>
+                    <td className="py-3 px-2 text-gray-400" colSpan={4}>
+                      No system logs available.
+                    </td>
+                  </tr>
+                )}
                 {logs.map((log, idx) => (
                   <tr
                     key={idx}
@@ -265,15 +294,14 @@ export default function AdminDashboard() {
                     <td className="py-3 px-2">{log.action}</td>
                     <td className="py-3 px-2">
                       <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                          log.status === "success"
+                        className={`inline-block px-2 py-1 rounded text-xs font-semibold ${log.status === "success"
                             ? "bg-green-900/30 text-green-400"
                             : log.status === "warning"
                               ? "bg-yellow-900/30 text-yellow-400"
                               : log.status === "pending"
                                 ? "bg-blue-900/30 text-blue-400"
                                 : "bg-red-900/30 text-red-400"
-                        }`}
+                          }`}
                       >
                         {log.status.toUpperCase()}
                       </span>
@@ -283,7 +311,7 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
-          <Link href="/logs?role=admin">
+          <Link href="/dashboard/admin/logs">
             <button className="mt-4 text-sm text-orange-400 hover:text-orange-300 transition">
               View all logs →
             </button>

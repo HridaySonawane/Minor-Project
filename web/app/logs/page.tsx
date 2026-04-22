@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { LogsIcon, Filter, Search } from "lucide-react";
 import {useSearchParams } from "next/navigation";
@@ -194,10 +195,10 @@ export default function LogsPage() {
           </p>
           <div className="flex gap-2">
             <button className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm font-semibold transition">
-              ← Previous
+              â† Previous
             </button>
             <button className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm font-semibold transition">
-              Next →
+              Next â†’
             </button>
           </div>
         </div>

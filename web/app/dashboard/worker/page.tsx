@@ -10,50 +10,70 @@ import {
   MapPin,
   AlertCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
+
+interface DashboardResponse {
+  data?: {
+    status?: string;
+    check_in_time?: string;
+    assigned_zone?: string;
+    tasks?: Array<{ title?: string; status?: string; zone?: string; priority?: string }>;
+    alerts?: Array<{ time?: string; message?: string; type?: string }>;
+  };
+}
 
 export default function WorkerDashboard() {
-  const [checkInTime, setCheckInTime] = useState<string | null>("08:15 AM");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [checkInTime, setCheckInTime] = useState<string | null>("--:--");
+  const [currentStatus, setCurrentStatus] = useState("On Shift");
+  const [assignedZone, setAssignedZone] = useState("Unknown");
+  const [tasks, setTasks] = useState<
+    Array<{ id: number; title: string; status: string; zone: string; priority: string }>
+  >([]);
+  const [alerts, setAlerts] = useState<
+    Array<{ time: string; message: string; type: string }>
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const tasks = [
-    {
-      id: 1,
-      title: "Zone C Patrol",
-      status: "pending",
-      zone: "Zone C",
-      priority: "high",
-    },
-    {
-      id: 2,
-      title: "Equipment Check",
-      status: "in-progress",
-      zone: "Zone A",
-      priority: "medium",
-    },
-    {
-      id: 3,
-      title: "Shift Briefing",
-      status: "completed",
-      zone: "Main",
-      priority: "medium",
-    },
-  ];
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const data = await apiFetch<DashboardResponse>("/api/dashboard");
+        const workerData = data.data || {};
+        setCheckInTime(workerData.check_in_time || "--:--");
+        setCurrentStatus(workerData.status || "On Shift");
+        setAssignedZone(workerData.assigned_zone || "Unknown");
+        setTasks(
+          (workerData.tasks || []).map((task, idx) => ({
+            id: idx + 1,
+            title: task.title || `Task ${idx + 1}`,
+            status: task.status || "pending",
+            zone: task.zone || "Unknown Zone",
+            priority: task.priority || "medium",
+          }))
+        );
+        setAlerts(
+          (workerData.alerts || []).map((alert) => ({
+            time: alert.time || "--:--",
+            message: alert.message || "Alert received",
+            type: alert.type || "info",
+          }))
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const alerts = [
-    { time: "08:15", message: "Helmet compliance reminder", type: "warning" },
-    { time: "07:40", message: "Safety briefing updated", type: "info" },
-    {
-      time: "06:30",
-      message: "Critical: Zone C ventilation check due in 20 minutes",
-      type: "critical",
-    },
-  ];
+    void loadDashboard();
+  }, []);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {isLoading && (
+          <div className="text-sm text-gray-400">Loading dashboard data...</div>
+        )}
         {/* CRITICAL ALERT */}
         <div className="bg-red-900/30 border border-red-700 p-4 rounded-xl flex items-start gap-3">
           <AlertTriangle
@@ -63,15 +83,15 @@ export default function WorkerDashboard() {
           <div>
             <h3 className="font-semibold text-red-400">🚨 CRITICAL ALERT</h3>
             <p className="text-sm text-red-200">
-              Zone C ventilation check due in 20 minutes. Report immediately if
-              issues detected.
+              {alerts.find((a) => a.type === "critical")?.message ||
+                "No critical alerts at the moment."}
             </p>
           </div>
         </div>
 
         {/* QUICK ACTIONS */}
         <div className="grid grid-cols-2 gap-4">
-          <Link href="/incidents/report?role=worker">
+          <Link href="/dashboard/worker/incidents/report">
             <div className="p-6 bg-orange-900/30 border border-orange-700 rounded-xl hover:bg-orange-900/50 cursor-pointer transition">
               <AlertCircle className="text-orange-500 mb-2" size={24} />
               <h3 className="font-semibold">Report Incident</h3>
@@ -85,7 +105,7 @@ export default function WorkerDashboard() {
             <p className="text-xs text-gray-400">Shift attendance</p>
           </div>
 
-          <Link href="/tasks?role=worker">
+          <Link href="/dashboard/worker/tasks">
             <div className="p-6 bg-blue-900/30 border border-blue-700 rounded-xl hover:bg-blue-900/50 cursor-pointer transition">
               <Briefcase className="text-blue-500 mb-2" size={24} />
               <h3 className="font-semibold">View Tasks</h3>
@@ -95,7 +115,7 @@ export default function WorkerDashboard() {
             </div>
           </Link>
 
-          <Link href="/alerts?role=worker">
+          <Link href="/dashboard/worker/alerts">
             <div className="p-6 bg-purple-900/30 border border-purple-700 rounded-xl hover:bg-purple-900/50 cursor-pointer transition">
               <Clock className="text-purple-500 mb-2" size={24} />
               <h3 className="font-semibold">My Alerts</h3>
@@ -108,7 +128,7 @@ export default function WorkerDashboard() {
         <div className="grid grid-cols-3 gap-4">
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-2">Current Status</p>
-            <p className="text-lg font-semibold text-green-400">✓ On Shift</p>
+            <p className="text-lg font-semibold text-green-400">✓ {currentStatus}</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-2">Check-in Time</p>
@@ -116,7 +136,7 @@ export default function WorkerDashboard() {
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-2">Zone Assigned</p>
-            <p className="text-lg font-semibold text-orange-400">Zone C</p>
+            <p className="text-lg font-semibold text-orange-400">{assignedZone}</p>
           </div>
         </div>
 
@@ -124,6 +144,9 @@ export default function WorkerDashboard() {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">Today's Tasks</h3>
           <div className="space-y-3">
+            {tasks.length === 0 && (
+              <p className="text-sm text-gray-400">No tasks assigned for today.</p>
+            )}
             {tasks.map((task) => (
               <div
                 key={task.id}
@@ -136,26 +159,24 @@ export default function WorkerDashboard() {
                       <MapPin size={12} /> {task.zone}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded ${
-                        task.priority === "high"
+                      className={`px-2 py-0.5 rounded ${task.priority === "high"
                           ? "bg-red-900/30 text-red-300"
                           : task.priority === "medium"
                             ? "bg-yellow-900/30 text-yellow-300"
                             : "bg-green-900/30 text-green-300"
-                      }`}
+                        }`}
                     >
                       {task.priority.toUpperCase()}
                     </span>
                   </div>
                 </div>
                 <span
-                  className={`text-xs font-semibold ${
-                    task.status === "completed"
+                  className={`text-xs font-semibold ${task.status === "completed"
                       ? "text-green-400"
                       : task.status === "in-progress"
                         ? "text-orange-400"
                         : "text-gray-400"
-                  }`}
+                    }`}
                 >
                   {task.status.replace("-", " ").toUpperCase()}
                 </span>
@@ -168,16 +189,18 @@ export default function WorkerDashboard() {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">Recent Alerts</h3>
           <div className="space-y-3">
+            {alerts.length === 0 && (
+              <p className="text-sm text-gray-400">No recent alerts.</p>
+            )}
             {alerts.map((alert, idx) => (
               <div
                 key={idx}
-                className={`p-4 rounded-lg border ${
-                  alert.type === "critical"
+                className={`p-4 rounded-lg border ${alert.type === "critical"
                     ? "bg-red-900/20 border-red-700"
                     : alert.type === "warning"
                       ? "bg-yellow-900/20 border-yellow-700"
                       : "bg-blue-900/20 border-blue-700"
-                }`}
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-xs font-semibold text-gray-400">

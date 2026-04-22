@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BarChart3, TrendingUp } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -24,24 +25,24 @@ export default function AnalyticsPage() {
               Total Incidents (30d)
             </h3>
             <p className="text-3xl font-bold mb-2">127</p>
-            <p className="text-sm text-red-400">↑ 12% from last month</p>
+            <p className="text-sm text-red-400">â†‘ 12% from last month</p>
           </div>
           <div className="p-6 bg-neutral-900 border border-neutral-800 rounded-xl">
             <h3 className="text-sm text-gray-400 mb-2">Safety Score</h3>
             <p className="text-3xl font-bold mb-2">87.5%</p>
-            <p className="text-sm text-green-400">↑ 2.1% improvement</p>
+            <p className="text-sm text-green-400">â†‘ 2.1% improvement</p>
           </div>
           <div className="p-6 bg-neutral-900 border border-neutral-800 rounded-xl">
             <h3 className="text-sm text-gray-400 mb-2">Avg Response Time</h3>
             <p className="text-3xl font-bold mb-2">8.2 min</p>
-            <p className="text-sm text-green-400">↓ 1.3 min faster</p>
+            <p className="text-sm text-green-400">â†“ 1.3 min faster</p>
           </div>
           <div className="p-6 bg-neutral-900 border border-neutral-800 rounded-xl">
             <h3 className="text-sm text-gray-400 mb-2">
               Incident Resolution Rate
             </h3>
             <p className="text-3xl font-bold mb-2">94%</p>
-            <p className="text-sm text-green-400">↑ 3% increase</p>
+            <p className="text-sm text-green-400">â†‘ 3% increase</p>
           </div>
         </div>
 

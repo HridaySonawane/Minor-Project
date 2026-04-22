@@ -1,83 +1,82 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+export const dynamic = 'force-dynamic';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Bell, CheckCircle2, AlertTriangle, Info } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api";
+
+type AlertType = "emergency" | "critical" | "warning" | "alert" | "info";
+interface AlertRow {
+  id: string;
+  type: string;
+  message: string;
+  severity?: string;
+  is_read: boolean;
+  created_at: string;
+}
+interface AlertsResponse {
+  status: string;
+  data: AlertRow[];
+}
 
 function AlertsContent() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") || "worker";
+  const pathParts = pathname.split("/").filter(Boolean);
+  const roleFromPath =
+    pathParts[0] === "dashboard" && pathParts[1] ? pathParts[1] : null;
+  const role = roleFromPath || searchParams.get("role") || "worker";
 
   const [filterType, setFilterType] = useState("all");
-  const [dismissedAlerts, setDismissedAlerts] = useState<number[]>([]);
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const alerts = [
-    {
-      id: 1,
-      type: "critical",
-      title: "CRITICAL: Methane level critical in Zone C",
-      message:
-        "Gas concentration has reached dangerous levels. Immediate evacuation may be required.",
-      zone: "Zone C",
-      time: "Just now",
-      action: "View Details",
-    },
-    {
-      id: 2,
-      type: "warning",
-      title: "Equipment malfunction detected",
-      message:
-        "Ventilation system in Zone B showing unusual temperature readings.",
-      zone: "Zone B",
-      time: "5 minutes ago",
-      action: "Investigate",
-    },
-    {
-      id: 3,
-      type: "alert",
-      title: "Staff shortage warning",
-      message: "Team C is operating below minimum staffing requirements.",
-      zone: "Team C",
-      time: "15 minutes ago",
-      action: "Assign Personnel",
-    },
-    {
-      id: 4,
-      type: "info",
-      title: "Maintenance window scheduled",
-      message: "Zone A will be under maintenance from 18:00 to 20:00 today.",
-      zone: "Zone A",
-      time: "2 hours ago",
-      action: "Acknowledge",
-    },
-    {
-      id: 5,
-      type: "info",
-      title: "Shift briefing completed",
-      message: "All safety briefings for the day shift have been completed.",
-      zone: "Main",
-      time: "4 hours ago",
-      action: "View Report",
-    },
-  ];
+  useEffect(() => {
+    const load = async () => {
+      setError(null);
+      setIsLoading(true);
+      try {
+        const res = await apiFetch<AlertsResponse>("/api/alerts");
+        setAlerts(res.data || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load alerts");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void load();
+  }, []);
 
-  const filteredAlerts = alerts.filter((alert) => {
-    const matchesType = filterType === "all" || alert.type === filterType;
-    return matchesType && !dismissedAlerts.includes(alert.id);
-  });
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((alert) => {
+      const type = alert.type as AlertType;
+      const matchesType = filterType === "all" || type === filterType;
+      return matchesType && !alert.is_read;
+    });
+  }, [alerts, filterType]);
 
-  const dismissAlert = (id: number) => {
-    setDismissedAlerts([...dismissedAlerts, id]);
+  const markRead = async (alertId: string) => {
+    await apiFetch("/api/alerts/read", {
+      method: "PATCH",
+      body: JSON.stringify({ alert_id: alertId }),
+    });
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === alertId ? { ...a, is_read: true } : a))
+    );
   };
 
-  const alertCounts = {
-    critical: alerts.filter((a) => a.type === "critical").length,
-    warning: alerts.filter((a) => a.type === "warning").length,
-    alert: alerts.filter((a) => a.type === "alert").length,
-    info: alerts.filter((a) => a.type === "info").length,
-  };
+  const alertCounts = useMemo(() => {
+    return {
+      critical: alerts.filter((a) => a.type === "critical").length,
+      warning: alerts.filter((a) => a.type === "warning").length,
+      alert: alerts.filter((a) => a.type === "alert").length,
+      info: alerts.filter((a) => a.type === "info").length,
+    };
+  }, [alerts]);
 
   return (
     <div className="space-y-6">
@@ -88,6 +87,12 @@ function AlertsContent() {
           System alerts and important notifications
         </p>
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-4 gap-4">
@@ -134,6 +139,9 @@ function AlertsContent() {
 
       {/* ALERTS LIST */}
       <div className="space-y-4">
+        {isLoading && (
+          <div className="text-sm text-gray-400">Loading alerts...</div>
+        )}
         {filteredAlerts.map((alert) => (
           <div
             key={alert.id}
@@ -169,21 +177,18 @@ function AlertsContent() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">{alert.title}</h3>
+                  <h3 className="font-semibold text-lg mb-2">
+                    {alert.type.toUpperCase()}
+                  </h3>
                   <p className="text-sm text-gray-300 mb-3">{alert.message}</p>
                   <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span>
-                      Zone:{" "}
-                      <span className="text-white font-semibold">
-                        {alert.zone}
-                      </span>
-                    </span>
-                    <span>{alert.time}</span>
+                    <span>{new Date(alert.created_at).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <button
+                  onClick={() => markRead(alert.id)}
                   className={`px-4 py-2 rounded font-semibold text-sm transition ${
                     alert.type === "critical"
                       ? "bg-red-600/30 hover:bg-red-600/50 text-red-300"
@@ -192,10 +197,10 @@ function AlertsContent() {
                         : "bg-neutral-700 hover:bg-neutral-600 text-gray-300"
                   }`}
                 >
-                  {alert.action}
+                  Mark read
                 </button>
                 <button
-                  onClick={() => dismissAlert(alert.id)}
+                  onClick={() => markRead(alert.id)}
                   className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-gray-300 transition"
                 >
                   ✕

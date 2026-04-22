@@ -3,6 +3,16 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AlertTriangle, TrendingUp, Gauge, Zap } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+
+interface DashboardResponse {
+  data?: {
+    pending_incidents?: Array<{ id?: number; code?: string; title?: string; severity?: string; status?: string }>;
+    critical_hazards?: Array<{ zone?: string }>;
+    risk_analysis?: Array<{ level?: string }>;
+  };
+}
 
 export function SafetyMonitor() {
   return (
@@ -29,29 +39,47 @@ export function SafetyMonitor() {
 }
 
 export default function SafetyDashboard() {
-  const incidents = [
-    {
-      id: 1,
-      code: "INC-3412",
-      title: "Gas leak report",
-      severity: "critical",
-      status: "pending-verification",
-    },
-    {
-      id: 2,
-      code: "INC-3407",
-      title: "PPE breach",
-      severity: "high",
-      status: "assigned",
-    },
-    {
-      id: 3,
-      code: "INC-3398",
-      title: "Equipment heat anomaly",
-      severity: "medium",
-      status: "escalated",
-    },
-  ];
+  const [stats, setStats] = useState({
+    pendingIncidents: 0,
+    criticalHazards: 0,
+    gasLevel: "0 ppm",
+    temperature: "0°C",
+  });
+  const [incidents, setIncidents] = useState<
+    Array<{ id: number; code: string; title: string; severity: string; status: string }>
+  >([]);
+  const [zoneStatus, setZoneStatus] = useState<Array<{ zone: string; status: string }>>([]);
+  useEffect(() => {
+    const load = async () => {
+      const data = await apiFetch<DashboardResponse>("/api/dashboard").catch(
+        () => null
+      );
+      const safety = data?.data;
+      if (!safety) return;
+      setStats({
+        pendingIncidents: safety.pending_incidents?.length || 0,
+        criticalHazards: safety.critical_hazards?.length || 0,
+        gasLevel: safety.critical_hazards?.length ? "High Risk" : "Normal",
+        temperature: "47°C",
+      });
+      setIncidents(
+        (safety.pending_incidents || []).map((incident, idx) => ({
+          id: incident.id || idx + 1,
+          code: incident.code || `INC-${1000 + idx}`,
+          title: incident.title || `Incident ${idx + 1}`,
+          severity: incident.severity || "medium",
+          status: incident.status || "pending",
+        }))
+      );
+      setZoneStatus(
+        (safety.critical_hazards || []).map((hazard, idx) => ({
+          zone: hazard.zone || `Zone ${String.fromCharCode(65 + idx)}`,
+          status: "red",
+        }))
+      );
+    };
+    void load();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -76,7 +104,8 @@ export default function SafetyDashboard() {
                 🚨 BLINKING ALERT
               </h3>
               <p className="text-red-200 mt-1">
-                Methane approaching critical threshold in Zone C (73 ppm - HIGH)
+                Methane approaching critical threshold in Zone C (
+                {stats.gasLevel} - HIGH)
               </p>
               <button className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition">
                 TRIGGER EMERGENCY ALERT
@@ -123,25 +152,22 @@ export default function SafetyDashboard() {
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h3 className="font-bold mb-4">Zone Status</h3>
             <div className="space-y-3">
-              {[
-                { zone: "Zone A", status: "green" },
-                { zone: "Zone B", status: "yellow" },
-                { zone: "Zone C", status: "red" },
-                { zone: "Zone D", status: "green" },
-              ].map((item, idx) => (
+              {(zoneStatus.length > 0
+                ? zoneStatus
+                : [{ zone: "No active hazards", status: "green" }]
+              ).map((item, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between p-3 bg-neutral-800 rounded"
                 >
                   <span className="font-semibold">{item.zone}</span>
                   <div
-                    className={`w-3 h-3 rounded-full ${
-                      item.status === "red"
+                    className={`w-3 h-3 rounded-full ${item.status === "red"
                         ? "bg-red-500"
                         : item.status === "yellow"
                           ? "bg-yellow-500"
                           : "bg-green-500"
-                    }`}
+                      }`}
                   ></div>
                 </div>
               ))}
@@ -157,14 +183,14 @@ export default function SafetyDashboard() {
                   <span className="text-sm text-gray-400">
                     Gas Level (Methane)
                   </span>
-                  <span className="font-bold text-red-400">73 ppm</span>
+                  <span className="font-bold text-red-400">{stats.gasLevel}</span>
                 </div>
                 <div className="w-full bg-red-900 h-2 rounded mt-2"></div>
               </div>
               <div className="p-3 bg-neutral-800 rounded">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Temperature</span>
-                  <span className="font-bold text-yellow-400">47°C</span>
+                  <span className="font-bold text-yellow-400">{stats.temperature}</span>
                 </div>
                 <div className="w-full bg-yellow-900 h-2 rounded mt-2"></div>
               </div>
@@ -182,11 +208,18 @@ export default function SafetyDashboard() {
         {/* INCIDENT REVIEW QUEUE */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">Incident Review Queue</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              Pending incidents: {stats.pendingIncidents} | Critical hazards:{" "}
+              {stats.criticalHazards}
+            </p>
           <div className="space-y-3">
+            {incidents.length === 0 && (
+              <p className="text-sm text-gray-400">No incidents in review queue.</p>
+            )}
             {incidents.map((incident) => (
               <Link
                 key={incident.id}
-                href={`/incidents/review?id=${incident.id}&role=safety`}
+                href={`/dashboard/safety/incidents/review?id=${incident.id}`}
               >
                 <div className="p-4 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition cursor-pointer border border-neutral-700">
                   <div className="flex items-start justify-between">
@@ -196,13 +229,12 @@ export default function SafetyDashboard() {
                           {incident.code}
                         </span>
                         <span
-                          className={`text-xs px-2 py-1 rounded font-semibold ${
-                            incident.severity === "critical"
+                          className={`text-xs px-2 py-1 rounded font-semibold ${incident.severity === "critical"
                               ? "bg-red-900/30 text-red-300"
                               : incident.severity === "high"
                                 ? "bg-orange-900/30 text-orange-300"
                                 : "bg-yellow-900/30 text-yellow-300"
-                          }`}
+                            }`}
                         >
                           {incident.severity.toUpperCase()}
                         </span>

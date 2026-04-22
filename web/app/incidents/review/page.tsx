@@ -1,5 +1,6 @@
+﻿"use client";
+export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AlertCircle, CheckCircle2, Clock, MessageSquare } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -64,7 +65,7 @@ export default function IncidentReviewPage() {
             href={`/dashboard/${role}?role=${role}`}
             className="text-orange-400 hover:text-orange-300 text-sm mb-4 inline-block"
           >
-            ← Back to Dashboard
+            â† Back to Dashboard
           </Link>
           <h2 className="text-3xl font-bold mb-2">
             Incident Review & Verification
@@ -178,10 +179,10 @@ export default function IncidentReviewPage() {
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <button className="py-3 bg-green-900/30 text-green-400 border border-green-700 rounded-lg hover:bg-green-900/50 transition font-semibold">
-                        ✓ Approve
+                        âœ“ Approve
                       </button>
                       <button className="py-3 bg-red-900/30 text-red-400 border border-red-700 rounded-lg hover:bg-red-900/50 transition font-semibold">
-                        ✗ Reject
+                        âœ— Reject
                       </button>
                     </div>
                   </div>

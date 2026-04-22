@@ -3,59 +3,77 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+
+interface DashboardResponse {
+  data?: {
+    stats?: {
+      total_team?: number;
+      active_tasks?: number;
+      open_incidents?: number;
+      attendance?: string;
+    };
+    team_members?: Array<{ name?: string; status?: string; task?: string }>;
+    tasks?: Array<{ id?: number; title?: string; status?: string }>;
+    incidents?: Array<{ id?: number; title?: string; severity?: string; team?: string }>;
+  };
+}
 
 export default function SupervisorDashboard() {
-  const teamMembers = [
-    {
-      name: "R. Das",
-      status: "Active",
-      task: "Belt Inspection",
-      attendance: "Present",
-    },
-    {
-      name: "M. Khan",
-      status: "Break",
-      task: "Conveyor Check",
-      attendance: "Present",
-    },
-    {
-      name: "P. Kumar",
-      status: "Delayed",
-      task: "Zone C Patrol",
-      attendance: "Late",
-    },
-    {
-      name: "A. Roy",
-      status: "Active",
-      task: "Drill Prep",
-      attendance: "Present",
-    },
-  ];
-
-  const tasks = [
-    { id: 1, title: "Ventilation audit", status: "pending" },
-    { id: 2, title: "Zone B sensor install", status: "pending" },
-    { id: 3, title: "Pump check", status: "in-progress" },
-    { id: 4, title: "Attendance reconciliation", status: "in-progress" },
-    { id: 5, title: "Shift handover", status: "completed" },
-    { id: 6, title: "PPE checklist", status: "completed" },
-  ];
-
-  const incidents = [
-    {
-      id: 1,
-      title: "Slippage near Shaft 2",
-      severity: "critical",
-      team: "Team A",
-    },
-    { id: 2, title: "PPE violation Team C", severity: "open", team: "Team C" },
-    {
-      id: 3,
-      title: "Ventilation warning",
-      severity: "resolved",
-      team: "Team B",
-    },
-  ];
+  const [stats, setStats] = useState({
+    teamMembers: 0,
+    activeTasks: 0,
+    openIncidents: 0,
+    attendanceToday: "0/0",
+  });
+  const [teamMembers, setTeamMembers] = useState<
+    Array<{ name: string; status: string; task: string }>
+  >([]);
+  const [tasks, setTasks] = useState<Array<{ id: number; title: string; status: string }>>(
+    []
+  );
+  const [incidents, setIncidents] = useState<
+    Array<{ id: number; title: string; severity: string; team: string }>
+  >([]);
+  useEffect(() => {
+    const load = async () => {
+      const data = await apiFetch<DashboardResponse>("/api/dashboard").catch(
+        () => null
+      );
+      const supervisor = data?.data;
+      if (!supervisor) return;
+      setStats({
+        teamMembers: supervisor.stats?.total_team || 0,
+        activeTasks: supervisor.stats?.active_tasks || 0,
+        openIncidents: supervisor.stats?.open_incidents || 0,
+        attendanceToday: supervisor.stats?.attendance || "0/0",
+      });
+      setTeamMembers(
+        (supervisor.team_members || []).map((member, idx) => ({
+          name: member.name || `Member ${idx + 1}`,
+          status: member.status || "Active",
+          task: member.task || "Assigned Task",
+        }))
+      );
+      setTasks(
+        (supervisor.tasks || []).map((task, idx) => ({
+          id: task.id || idx + 1,
+          title: task.title || `Task ${idx + 1}`,
+          status: task.status || "pending",
+        }))
+      );
+      setIncidents(
+        (supervisor.incidents || []).map((incident, idx) => ({
+          id: incident.id || idx + 1,
+          title: incident.title || `Incident ${idx + 1}`,
+          severity: incident.severity || "open",
+          team: incident.team || "Team",
+        }))
+      );
+    };
+    void load();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -73,20 +91,22 @@ export default function SupervisorDashboard() {
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Team Members</p>
             <p className="text-2xl font-bold text-orange-400">
-              {teamMembers.length}
+              {stats.teamMembers}
             </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Active Tasks</p>
-            <p className="text-2xl font-bold text-blue-400">3</p>
+            <p className="text-2xl font-bold text-blue-400">{stats.activeTasks}</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Open Incidents</p>
-            <p className="text-2xl font-bold text-red-400">2</p>
+            <p className="text-2xl font-bold text-red-400">{stats.openIncidents}</p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Attendance Today</p>
-            <p className="text-2xl font-bold text-green-400">28/32</p>
+            <p className="text-2xl font-bold text-green-400">
+              {stats.attendanceToday}
+            </p>
           </div>
         </div>
 
@@ -107,6 +127,13 @@ export default function SupervisorDashboard() {
                   </tr>
                 </thead>
                 <tbody>
+                  {teamMembers.length === 0 && (
+                    <tr>
+                      <td className="py-3 px-2 text-gray-400" colSpan={3}>
+                        No team members found.
+                      </td>
+                    </tr>
+                  )}
                   {teamMembers.map((member, idx) => (
                     <tr
                       key={idx}
@@ -115,13 +142,12 @@ export default function SupervisorDashboard() {
                       <td className="py-3 px-2 font-semibold">{member.name}</td>
                       <td className="py-3 px-2">
                         <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            member.status === "Active"
+                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${member.status === "Active"
                               ? "bg-green-900/30 text-green-400"
                               : member.status === "Break"
                                 ? "bg-yellow-900/30 text-yellow-400"
                                 : "bg-red-900/30 text-red-400"
-                          }`}
+                            }`}
                         >
                           {member.status}
                         </span>
@@ -141,8 +167,11 @@ export default function SupervisorDashboard() {
               Team Incidents
             </h3>
             <div className="space-y-3">
+              {incidents.length === 0 && (
+                <p className="text-sm text-gray-400">No incidents assigned.</p>
+              )}
               {incidents.map((incident) => (
-                <Link key={incident.id} href={`/incidents?role=supervisor`}>
+                <Link key={incident.id} href="/dashboard/supervisor/incidents">
                   <div
                     className="p-3 rounded-lg border hover:bg-neutral-800 transition cursor-pointer"
                     style={{

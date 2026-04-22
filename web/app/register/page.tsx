@@ -1,56 +1,80 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
-    employeeId: "",
     email: "",
     requestedRole: "worker",
     password: "",
     confirmPassword: "",
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match");
+      setError("Passwords don't match.");
       return;
     }
-    setIsSubmitted(true);
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 3000);
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.requestedRole,
+        }),
+      });
+      setIsSubmitted(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Registration failed. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white">
         <div className="text-center">
-          <div className="mb-6 text-6xl">✅</div>
+          <CheckCircle2 size={64} className="mx-auto mb-6 text-green-400" />
           <h1 className="text-3xl font-bold mb-4">
-            Registration Request Submitted
+            Registration Submitted!
           </h1>
           <p className="text-gray-400 mb-6 max-w-md">
-            Your account request has been submitted for approval. An
-            administrator will review your request and assign a role
-            accordingly.
+            Your account has been created. You can now sign in with your
+            credentials.
           </p>
-          <p className="text-sm text-gray-500">Redirecting to login...</p>
+          <Link href="/login">
+            <button className="px-5 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition">
+              Continue to Login
+            </button>
+          </Link>
         </div>
       </div>
     );
@@ -59,6 +83,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white py-12">
       <div className="w-full max-w-md">
+
         {/* LOGO */}
         <div className="text-center mb-8">
           <Link href="/">
@@ -71,13 +96,20 @@ export default function RegisterPage() {
 
         {/* REGISTRATION CARD */}
         <div className="p-8 bg-neutral-900 rounded-2xl shadow-lg border border-neutral-800">
-          <h2 className="text-2xl font-bold mb-6 text-center">
+          <h2 className="text-2xl font-bold mb-2 text-center">
             User Registration
           </h2>
-
           <p className="text-xs text-gray-400 mb-6 text-center">
             Account request workflow with admin approval
           </p>
+
+          {/* ERROR */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg flex items-start gap-2 text-sm text-red-300">
+              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,21 +123,6 @@ export default function RegisterPage() {
                 placeholder="Enter your full name"
                 required
                 value={formData.fullName}
-                onChange={handleChange}
-                className="w-full p-3 rounded-lg bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-400 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-400 mb-2 block">
-                Employee ID
-              </label>
-              <input
-                type="text"
-                name="employeeId"
-                placeholder="Enter your employee ID"
-                required
-                value={formData.employeeId}
                 onChange={handleChange}
                 className="w-full p-3 rounded-lg bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-400 text-white"
               />
@@ -150,7 +167,7 @@ export default function RegisterPage() {
               <input
                 type="password"
                 name="password"
-                placeholder="Enter secure password"
+                placeholder="Minimum 6 characters"
                 required
                 value={formData.password}
                 onChange={handleChange}
@@ -165,7 +182,7 @@ export default function RegisterPage() {
               <input
                 type="password"
                 name="confirmPassword"
-                placeholder="Confirm your password"
+                placeholder="Re-enter your password"
                 required
                 value={formData.confirmPassword}
                 onChange={handleChange}
@@ -175,9 +192,17 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold"
+              disabled={isLoading}
+              className="w-full py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Submit Registration Request
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Registration Request"
+              )}
             </button>
           </form>
 

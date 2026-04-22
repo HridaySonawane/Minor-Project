@@ -1,76 +1,134 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+export const dynamic = 'force-dynamic';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   CheckCircle2,
   Circle,
-  AlertCircle,
   Plus,
-  Filter,
   Search,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api";
+
+interface TaskRow {
+  id: string;
+  task_name: string;
+  description?: string;
+  priority: "low" | "medium" | "high";
+  status: "assigned" | "in_progress" | "completed";
+  assigned_to?: string;
+  created_at?: string;
+}
+interface TasksResponse {
+  status: string;
+  data: TaskRow[];
+}
 
 export default function TasksPage() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") || "worker";
+  const pathParts = pathname.split("/").filter(Boolean);
+  const roleFromPath =
+    pathParts[0] === "dashboard" && pathParts[1] ? pathParts[1] : null;
+  const role = roleFromPath || searchParams.get("role") || "worker";
+  const canAssignTask = role === "supervisor";
 
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const tasks = [
-    {
-      id: 1,
-      title: "Ventilation check - Zone C",
-      description: "Inspect and calibrate ventilation sensors",
-      assignedTo: "R. Das",
-      zone: "Zone C",
-      dueDate: "Today",
-      priority: "high",
-      status: "pending",
-    },
-    {
-      id: 2,
-      title: "Equipment maintenance",
-      description: "Regular maintenance of conveyor belt system",
-      assignedTo: "M. Khan",
-      zone: "Zone B",
-      dueDate: "Tomorrow",
-      priority: "medium",
-      status: "in-progress",
-    },
-    {
-      id: 3,
-      title: "Safety briefing",
-      description: "Conduct safety briefing for Team A",
-      assignedTo: "Supervisor",
-      zone: "Main",
-      dueDate: "2 days",
-      priority: "medium",
-      status: "completed",
-    },
-    {
-      id: 4,
-      title: "Tool inventory check",
-      description: "Count and verify all safety equipment",
-      assignedTo: "A. Roy",
-      zone: "Storage",
-      dueDate: "3 days",
-      priority: "low",
-      status: "pending",
-    },
-  ];
-
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch = task.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" || task.status === filterStatus;
-    return matchesSearch && matchesStatus;
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    task_name: "",
+    description: "",
+    priority: "medium" as TaskRow["priority"],
+    assigned_to: "",
   });
+  const [isAssignSubmitting, setIsAssignSubmitting] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null);
+      setIsLoading(true);
+      try {
+        const res = await apiFetch<TasksResponse>("/api/tasks");
+        setTasks(res.data || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load tasks");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  const reloadTasks = async () => {
+    const res = await apiFetch<TasksResponse>("/api/tasks");
+    setTasks(res.data || []);
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch = task.task_name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" ||
+        (filterStatus === "pending"
+          ? task.status === "assigned"
+          : filterStatus === "in-progress"
+            ? task.status === "in_progress"
+            : task.status === "completed");
+      return matchesSearch && matchesStatus;
+    });
+  }, [tasks, searchTerm, filterStatus]);
+
+  const updateStatus = async (taskId: string, status: TaskRow["status"]) => {
+    await apiFetch("/api/tasks/status", {
+      method: "PATCH",
+      body: JSON.stringify({ task_id: taskId, status }),
+    });
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status } : t)));
+  };
+
+  const submitAssign = async () => {
+    if (!canAssignTask) {
+      setError("Only supervisors can assign tasks.");
+      return;
+    }
+    if (!assignForm.task_name.trim() || !assignForm.priority || !assignForm.assigned_to.trim()) {
+      setError("Task name, priority, and assigned_to are required.");
+      return;
+    }
+    setError(null);
+    setIsAssignSubmitting(true);
+    try {
+      await apiFetch("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          task_name: assignForm.task_name.trim(),
+          description: assignForm.description.trim() || null,
+          priority: assignForm.priority,
+          assigned_to: assignForm.assigned_to.trim(),
+        }),
+      });
+      setIsAssignOpen(false);
+      setAssignForm({
+        task_name: "",
+        description: "",
+        priority: "medium",
+        assigned_to: "",
+      });
+      await reloadTasks();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to assign task");
+    } finally {
+      setIsAssignSubmitting(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -84,12 +142,21 @@ export default function TasksPage() {
           {(role === "supervisor" ||
             role === "admin" ||
             role === "authority") && (
-            <button className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition flex items-center gap-2">
+            <button
+              onClick={() => setIsAssignOpen(true)}
+              className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition flex items-center gap-2"
+            >
               <Plus size={20} />
               Assign Task
             </button>
           )}
         </div>
+
+        {error && (
+          <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-sm text-red-300">
+            {error}
+          </div>
+        )}
 
         {/* STATS */}
         <div className="grid grid-cols-4 gap-4">
@@ -100,13 +167,13 @@ export default function TasksPage() {
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">In Progress</p>
             <p className="text-2xl font-bold text-orange-400">
-              {tasks.filter((t) => t.status === "in-progress").length}
+              {tasks.filter((t) => t.status === "in_progress").length}
             </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
             <p className="text-xs text-gray-400 mb-1">Pending</p>
             <p className="text-2xl font-bold text-yellow-400">
-              {tasks.filter((t) => t.status === "pending").length}
+              {tasks.filter((t) => t.status === "assigned").length}
             </p>
           </div>
           <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
@@ -151,6 +218,12 @@ export default function TasksPage() {
 
         {/* TASKS GRID */}
         <div className="grid grid-cols-2 gap-4">
+          {isLoading && (
+            <div className="text-sm text-gray-400">Loading tasks...</div>
+          )}
+          {!isLoading && filteredTasks.length === 0 && (
+            <div className="text-sm text-gray-400">No tasks found.</div>
+          )}
           {filteredTasks.map((task) => (
             <div
               key={task.id}
@@ -163,6 +236,16 @@ export default function TasksPage() {
                       ? "text-green-400"
                       : "text-gray-400 hover:text-orange-400"
                   }`}
+                  onClick={() =>
+                    updateStatus(
+                      task.id,
+                      task.status === "completed"
+                        ? "assigned"
+                        : task.status === "assigned"
+                          ? "in_progress"
+                          : "completed"
+                    )
+                  }
                 >
                   {task.status === "completed" ? (
                     <CheckCircle2 size={24} />
@@ -183,21 +266,23 @@ export default function TasksPage() {
                 </span>
               </div>
 
-              <h3 className="font-bold text-lg mb-2">{task.title}</h3>
-              <p className="text-sm text-gray-400 mb-4">{task.description}</p>
+              <h3 className="font-bold text-lg mb-2">{task.task_name}</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                {task.description || "—"}
+              </p>
 
               <div className="space-y-2 mb-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Zone:</span>
-                  <span className="font-semibold">{task.zone}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-gray-400">Assigned:</span>
-                  <span className="font-semibold">{task.assignedTo}</span>
+                  <span className="font-semibold">
+                    {task.assigned_to || "—"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Due:</span>
-                  <span className="font-semibold">{task.dueDate}</span>
+                  <span className="text-gray-400">Created:</span>
+                  <span className="font-semibold">
+                    {task.created_at ? new Date(task.created_at).toLocaleString() : "—"}
+                  </span>
                 </div>
               </div>
 
@@ -208,11 +293,110 @@ export default function TasksPage() {
                     : "bg-orange-600/20 text-orange-400 border border-orange-600/30 hover:bg-orange-600/30"
                 }`}
               >
-                {task.status === "completed" ? "Completed" : "View Details"}
+                {task.status === "completed"
+                  ? "Completed"
+                  : task.status === "in_progress"
+                    ? "In Progress"
+                    : "Assigned"}
               </button>
             </div>
           ))}
         </div>
+
+        {isAssignOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold">Assign Task</h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Supervisor only. Use a valid user id in <span className="text-white">assigned_to</span>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAssignOpen(false)}
+                  className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-2 block">Task name</label>
+                  <input
+                    value={assignForm.task_name}
+                    onChange={(e) =>
+                      setAssignForm((p) => ({ ...p, task_name: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    placeholder="e.g. Inspect Zone A"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-2 block">Description</label>
+                  <textarea
+                    value={assignForm.description}
+                    onChange={(e) =>
+                      setAssignForm((p) => ({ ...p, description: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    placeholder="Optional"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-2 block">Priority</label>
+                    <select
+                      value={assignForm.priority}
+                      onChange={(e) =>
+                        setAssignForm((p) => ({
+                          ...p,
+                          priority: e.target.value as TaskRow["priority"],
+                        }))
+                      }
+                      className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    >
+                      <option value="low">LOW</option>
+                      <option value="medium">MEDIUM</option>
+                      <option value="high">HIGH</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-2 block">
+                      assigned_to (user id)
+                    </label>
+                    <input
+                      value={assignForm.assigned_to}
+                      onChange={(e) =>
+                        setAssignForm((p) => ({ ...p, assigned_to: e.target.value }))
+                      }
+                      className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      placeholder="UUID"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end pt-2">
+                  <button
+                    onClick={() => setIsAssignOpen(false)}
+                    className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitAssign}
+                    disabled={isAssignSubmitting}
+                    className="px-5 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isAssignSubmitting ? "Assigning..." : "Assign"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
