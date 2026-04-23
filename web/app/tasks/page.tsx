@@ -142,14 +142,14 @@ export default function TasksPage() {
           {(role === "supervisor" ||
             role === "admin" ||
             role === "authority") && (
-            <button
-              onClick={() => setIsAssignOpen(true)}
-              className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition flex items-center gap-2"
-            >
-              <Plus size={20} />
-              Assign Task
-            </button>
-          )}
+              <button
+                onClick={() => setIsAssignOpen(true)}
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Assign Task
+              </button>
+            )}
         </div>
 
         {error && (
@@ -204,11 +204,10 @@ export default function TasksPage() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
-                  filterStatus === status
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${filterStatus === status
                     ? "bg-orange-600 text-white"
                     : "bg-neutral-800 text-gray-400 hover:bg-neutral-700"
-                }`}
+                  }`}
               >
                 {status.replace("-", " ").toUpperCase()}
               </button>
@@ -231,11 +230,10 @@ export default function TasksPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <button
-                  className={`text-2xl transition hover:scale-110 ${
-                    task.status === "completed"
+                  className={`text-2xl transition hover:scale-110 ${task.status === "completed"
                       ? "text-green-400"
                       : "text-gray-400 hover:text-orange-400"
-                  }`}
+                    }`}
                   onClick={() =>
                     updateStatus(
                       task.id,
@@ -254,13 +252,12 @@ export default function TasksPage() {
                   )}
                 </button>
                 <span
-                  className={`px-3 py-1 rounded text-xs font-semibold ${
-                    task.priority === "high"
+                  className={`px-3 py-1 rounded text-xs font-semibold ${task.priority === "high"
                       ? "bg-red-900/30 text-red-400"
                       : task.priority === "medium"
                         ? "bg-yellow-900/30 text-yellow-400"
                         : "bg-green-900/30 text-green-400"
-                  }`}
+                    }`}
                 >
                   {task.priority.toUpperCase()}
                 </span>
@@ -287,11 +284,10 @@ export default function TasksPage() {
               </div>
 
               <button
-                className={`w-full py-2 rounded font-semibold text-sm transition ${
-                  task.status === "completed"
+                className={`w-full py-2 rounded font-semibold text-sm transition ${task.status === "completed"
                     ? "bg-neutral-800 text-gray-400"
                     : "bg-orange-600/20 text-orange-400 border border-orange-600/30 hover:bg-orange-600/30"
-                }`}
+                  }`}
               >
                 {task.status === "completed"
                   ? "Completed"

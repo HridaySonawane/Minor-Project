@@ -16,10 +16,11 @@ import { apiFetch } from "@/lib/api";
 
 interface DashboardResponse {
   data?: {
+    id?: string;
     status?: string;
     check_in_time?: string;
     assigned_zone?: string;
-    tasks?: Array<{ title?: string; status?: string; zone?: string; priority?: string }>;
+    tasks?: Array<{ id?: string; title?: string; status?: string; zone?: string; priority?: string }>;
     alerts?: Array<{ time?: string; message?: string; type?: string }>;
   };
 }
@@ -46,7 +47,7 @@ export default function WorkerDashboard() {
         setAssignedZone(workerData.assigned_zone || "Unknown");
         setTasks(
           (workerData.tasks || []).map((task, idx) => ({
-            id: idx + 1,
+            id: task.id ? (task.id as unknown as number) : idx + 1,
             title: task.title || `Task ${idx + 1}`,
             status: task.status || "pending",
             zone: task.zone || "Unknown Zone",
