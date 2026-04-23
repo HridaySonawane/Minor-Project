@@ -48,7 +48,7 @@ export default function UsersScreen() {
     async function fetchUsers() {
       if (!globalAuthToken) return;
       try {
-        const res = await fetch('https://api.pulkitworks.info:5000/api/users', {
+        const res = await fetch('https://api.pulkitworks.info:5000/api/users/workers', {
           headers: { Authorization: `Bearer ${globalAuthToken}` },
         });
 

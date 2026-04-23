@@ -78,6 +78,40 @@ export default function TasksScreen() {
     }
     fetchTasks();
   }, []);
+  
+  const handleUpdateStatus = async (taskId: string | number, currentStatus: string) => {
+    if (!globalAuthToken) return;
+    
+    let nextStatus = '';
+    if (currentStatus === 'assigned') nextStatus = 'in_progress';
+    else if (currentStatus === 'in-progress') nextStatus = 'completed';
+    else return;
+
+    try {
+      const res = await fetch('https://api.pulkitworks.info:5000/api/tasks/status', {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${globalAuthToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          task_id: taskId,
+          status: nextStatus
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        // Optimistically update the UI or re-fetch
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: nextStatus.replace('_', '-') as any } : t));
+        Alert.alert('Success', `Task marked as ${nextStatus.replace('_', ' ')}`);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update task');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Connection failed');
+    }
+  };
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -215,6 +249,7 @@ export default function TasksScreen() {
               </View>
 
               <Pressable
+                onPress={() => handleUpdateStatus(task.id, task.status)}
                 style={({ pressed }) => [
                   styles.taskButton,
                   {
@@ -229,7 +264,8 @@ export default function TasksScreen() {
                     fontSize: 12,
                     fontWeight: '800',
                   }}>
-                  {task.status === 'completed' ? 'Completed' : 'View Details'}
+                  {task.status === 'assigned' ? 'Start Task' : 
+                   task.status === 'in-progress' ? 'Complete Task' : 'Completed'}
                 </ThemedText>
               </Pressable>
             </View>
