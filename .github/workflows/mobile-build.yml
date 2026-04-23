@@ -2,8 +2,10 @@ name: Build Mobile APK
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'mobile/**'
+  workflow_dispatch:
 
 permissions:
   contents: write # Required for creating the Release
