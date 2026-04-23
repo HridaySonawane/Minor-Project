@@ -209,7 +209,7 @@ export default function SupervisorDashboard() {
               <h4 className="font-semibold mb-3 text-red-400">Pending</h4>
               <div className="space-y-2">
                 {tasks
-                  .filter((t) => t.status === "pending")
+                  .filter((t) => t.status === "assigned")
                   .map((task) => (
                     <div
                       key={task.id}
@@ -228,7 +228,7 @@ export default function SupervisorDashboard() {
               </h4>
               <div className="space-y-2">
                 {tasks
-                  .filter((t) => t.status === "in-progress")
+                  .filter((t) => t.status === "in_progress")
                   .map((task) => (
                     <div
                       key={task.id}

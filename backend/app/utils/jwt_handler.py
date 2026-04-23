@@ -47,7 +47,16 @@ def verify_token(request):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        error_msg = str(e)
+        # Return more specific error messages
+        if "Authorization" in error_msg or "header" in error_msg.lower():
+            return {"error": "Missing or invalid Authorization header. Please send token in 'Authorization: Bearer <token>' format"}
+        elif "expired" in error_msg.lower():
+            return {"error": "Token has expired"}
+        elif "invalid" in error_msg.lower():
+            return {"error": "Invalid or malformed token"}
+        else:
+            return {"error": error_msg}
 
 
 # CUSTOM DECORATOR (UPDATED)
