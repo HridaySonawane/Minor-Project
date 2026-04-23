@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { LogsIcon, Filter, Search } from "lucide-react";
 import {useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-export default function LogsPage() {
+export function LogsContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -204,5 +204,13 @@ export default function LogsPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function LogsPage() {
+  return (
+    <Suspense fallback={<div>Loading logs...</div>}>
+      <LogsContent />
+    </Suspense>
   );
 }

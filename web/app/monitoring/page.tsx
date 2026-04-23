@@ -1,11 +1,11 @@
 ﻿"use client";
-export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Gauge, TrendingUp, AlertTriangle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-export default function MonitoringPage() {
+function MonitoringContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -187,5 +187,13 @@ export default function MonitoringPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function MonitoringPage() {
+  return (
+    <Suspense fallback={<div>Loading monitoring...</div>}>
+      <MonitoringContent />
+    </Suspense>
   );
 }

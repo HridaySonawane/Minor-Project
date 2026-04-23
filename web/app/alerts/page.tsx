@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -65,7 +64,7 @@ function AlertsContent() {
       body: JSON.stringify({ alert_id: alertId }),
     });
     setAlerts((prev) =>
-      prev.map((a) => (a.id === alertId ? { ...a, is_read: true } : a))
+      prev.map((a) => (a.id === alertId ? { ...a, is_read: true } : a)),
     );
   };
 
