@@ -4,8 +4,10 @@ export const dynamic = 'force-dynamic';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, Clock, MapPin, CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { ReportsContent } from "../reports/page";
 
-export default function TeamPage() {
+export function TeamContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -163,5 +165,13 @@ export default function TeamPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function TeamPage() {
+  return (
+    <Suspense fallback={<div>Loading team...</div>}>
+      <TeamContent />
+    </Suspense>
   );
 }

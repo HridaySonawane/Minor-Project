@@ -4,9 +4,10 @@ export const dynamic = 'force-dynamic';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, Plus, Edit2, Trash2, Shield } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { ReportsContent } from "../reports/page";
 
-export default function UsersPage() {
+export function UsersContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -225,5 +226,13 @@ export default function UsersPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<div>Loading users...</div>}>
+      <UsersContent />
+    </Suspense>
   );
 }

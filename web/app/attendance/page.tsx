@@ -1,6 +1,6 @@
 "use client";
-export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Clock, CheckCircle2, LogIn, LogOut } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -32,7 +32,7 @@ interface ShiftsResponse {
   data: ShiftRow[];
 }
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pathParts = pathname.split("/").filter(Boolean);
@@ -160,7 +160,7 @@ export default function AttendancePage() {
             end_time: shiftForm.end_time,
             location: shiftForm.location || null,
           }),
-        }
+        },
       );
 
       const userIds = shiftForm.user_ids_csv
@@ -221,7 +221,8 @@ export default function AttendancePage() {
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h3 className="text-xl font-bold mb-2">Create Shift</h3>
             <p className="text-sm text-gray-400 mb-5">
-              Supervisor only. Create a shift and optionally assign workers (comma-separated user ids).
+              Supervisor only. Create a shift and optionally assign workers
+              (comma-separated user ids).
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -270,7 +271,10 @@ export default function AttendancePage() {
                 <input
                   value={shiftForm.user_ids_csv}
                   onChange={(e) =>
-                    setShiftForm((p) => ({ ...p, user_ids_csv: e.target.value }))
+                    setShiftForm((p) => ({
+                      ...p,
+                      user_ids_csv: e.target.value,
+                    }))
                   }
                   className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
                   placeholder="uuid1, uuid2, uuid3"
@@ -387,7 +391,9 @@ export default function AttendancePage() {
                     key={person.id}
                     className="hover:bg-neutral-800/50 transition"
                   >
-                    <td className="py-4 px-4 font-semibold">{person.user_id}</td>
+                    <td className="py-4 px-4 font-semibold">
+                      {person.user_id}
+                    </td>
                     <td className="py-4 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <LogIn size={16} className="text-green-400" />
@@ -454,5 +460,13 @@ export default function AttendancePage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div>Loading attendance...</div>}>
+      <AttendanceContent />
+    </Suspense>
   );
 }

@@ -1,11 +1,11 @@
 ﻿"use client";
-export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BarChart3, TrendingUp } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -161,5 +161,13 @@ export default function AnalyticsPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<div>Loading analytics...</div>}>
+      <AnalyticsContent />
+    </Suspense>
   );
 }

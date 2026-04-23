@@ -1,13 +1,13 @@
 ﻿"use client";
-export const dynamic = 'force-dynamic';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Suspense } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AlertCircle, CheckCircle2, Clock, MessageSquare } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 
-export default function IncidentReviewPage() {
+function IncidentReviewContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -217,5 +217,13 @@ export default function IncidentReviewPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function IncidentReviewPage() {
+  return (
+    <Suspense fallback={<div>Loading incidents...</div>}>
+      <IncidentReviewContent />
+    </Suspense>
   );
 }

@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { BarChart3, Download, Filter, Calendar } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-export default function ReportsPage() {
+export function ReportsContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -221,3 +221,12 @@ export default function ReportsPage() {
     </DashboardLayout>
   );
 }
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<div>Loading reports...</div>}>
+      <ReportsContent />
+    </Suspense>
+  );
+}
+  

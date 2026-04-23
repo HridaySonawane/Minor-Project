@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Settings, Lock, Bell, User, LogOut } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-export default function SettingsPage() {
+export function SettingsContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "worker";
 
@@ -233,3 +233,12 @@ export default function SettingsPage() {
     </DashboardLayout>
   );
 }
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+  
